@@ -1,0 +1,122 @@
+name: gaumaya-prod
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: gaumaya-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "${PUBLIC_HTTP_PORT:-80}:80"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:-_}
+    volumes:
+      - ./ops/nginx/templates/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - backend_uploads:/var/www/uploads:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - app_net
+
+  backend:
+    build:
+      context: ./backend
+    container_name: gaumaya-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env.production
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      TRUST_PROXY: "1"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    expose:
+      - "5000"
+    volumes:
+      - backend_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5000/api/health/ready').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1));"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 25s
+    networks:
+      - app_net
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-}
+    container_name: gaumaya-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      backend:
+        condition: service_healthy
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1));"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 25s
+    networks:
+      - app_net
+
+  mongo:
+    image: mongo:7
+    container_name: gaumaya-mongo
+    restart: unless-stopped
+    command: ["--bind_ip_all"]
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 20s
+      timeout: 10s
+      retries: 6
+      start_period: 20s
+    networks:
+      - app_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: gaumaya-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - app_net
+
+volumes:
+  mongo_data:
+  redis_data:
+  backend_uploads:
+
+networks:
+  app_net:
+    driver: bridge

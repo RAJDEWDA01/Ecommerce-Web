@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gaumaya-amber: #b45309;
+  --gaumaya-amber-soft: #f59e0b;
+  --gaumaya-ink: #1c1917;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-body), "Segoe UI", sans-serif;
+  color: var(--gaumaya-ink);
+  background: #fafaf9;
+}
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+::selection {
+  background: rgba(245, 158, 11, 0.35);
+  color: #111827;
+}
+
+.animate-fade-up {
+  opacity: 1;
+  animation: none;
+}
+
+.animate-fade-in {
+  opacity: 1;
+  animation: none;
+}
+
+.animate-float-slow {
+  animation: none;
+}
+
+.glass-surface {
+  background: #ffffff;
+}
+
+.hover-lift {
+  transition: none;
+}
+
+.hover-lift:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: auto;
+}
+
+.btn-shimmer::after {
+  content: none;
+}
+
+.btn-shimmer:hover::after {
+  left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
