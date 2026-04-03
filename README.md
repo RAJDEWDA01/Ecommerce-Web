@@ -2,7 +2,7 @@
 
 Full-stack ecommerce project with:
 - `frontend` (Next.js 16, App Router, Zustand)
-- `backend` (Express + TypeScript + MongoDB + Redis optional)
+- `backend` (Express + TypeScript + MongoDB + Redis )
 
 ## 1) Local Development
 
