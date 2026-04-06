@@ -51,6 +51,16 @@ FRONTEND_URL=https://shop.your-domain.com
 TRUST_PROXY=true
 ```
 
+Uploads (pick one; recommended: Cloudinary free tier):
+
+```env
+UPLOAD_DRIVER=cloudinary
+CLOUDINARY_CLOUD_NAME=<your cloud name>   # shown in Cloudinary dashboard and in https://res.cloudinary.com/<cloud_name>/
+CLOUDINARY_API_KEY=<from Cloudinary API keys>
+CLOUDINARY_API_SECRET=<from Cloudinary API keys>
+CLOUDINARY_FOLDER=gaumaya-uploads
+```
+
 Email and admin ops (strongly recommended for production):
 
 ```env
