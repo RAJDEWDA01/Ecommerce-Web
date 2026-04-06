@@ -1,19 +1,15 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import type { Request, Response } from 'express';
 import env from '../config/env.js';
 import { logAuditEvent } from '../utils/audit.js';
+import {
+  buildStoredImageUrl,
+  getUploadLimits,
+  isCloudinaryDriver,
+  storeImageBuffer,
+} from '../services/storage.js';
 
-const uploadDirectory = path.resolve('uploads');
-const maxUploadBytes = 5 * 1024 * 1024;
-const remoteMimeToExtension = new Map<string, string>([
-  ['image/jpeg', '.jpg'],
-  ['image/jpg', '.jpg'],
-  ['image/png', '.png'],
-  ['image/webp', '.webp'],
-  ['image/avif', '.avif'],
-]);
+const { maxUploadBytes } = getUploadLimits();
 
 class ImportImageError extends Error {
   statusCode: number;
@@ -31,16 +27,6 @@ const sanitizeBaseName = (value: string): string => {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
     .slice(0, 50);
-};
-
-const buildStoredImageUrl = (filename: string): string => `/uploads/${filename}`;
-
-const resolveImportFileName = (sourceUrl: URL, extension: string): string => {
-  const sourceBaseName = sanitizeBaseName(path.basename(sourceUrl.pathname, path.extname(sourceUrl.pathname)));
-  const fallbackBaseName = 'remote-product';
-  const timestamp = Date.now();
-  const random = crypto.randomInt(100000000, 999999999);
-  return `${sourceBaseName || fallbackBaseName}-${timestamp}-${random}${extension}`;
 };
 
 const validateRemoteImageUrl = (rawImageUrl: unknown): URL => {
@@ -80,27 +66,35 @@ export const uploadProductImage = async (req: Request, res: Response): Promise<v
       return;
     }
 
-    const imageUrl = buildStoredImageUrl(req.file.filename);
+    const responsePayload =
+      isCloudinaryDriver && req.file.buffer
+        ? await storeImageBuffer(req.file.buffer, req.file.originalname, req.file.mimetype)
+        : {
+            url: buildStoredImageUrl(req.file.filename),
+            size: req.file.size,
+            mimetype: req.file.mimetype,
+            filename: req.file.filename,
+          };
 
     await logAuditEvent(req, {
       action: 'uploads.product_image.create',
       outcome: 'success',
       statusCode: 201,
       resourceType: 'upload',
-      resourceId: req.file.filename,
+      resourceId: responsePayload.publicId ?? responsePayload.filename ?? 'cloudinary',
       metadata: {
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
+        fileSize: responsePayload.size,
+        mimeType: responsePayload.mimetype,
       },
     });
 
     res.status(201).json({
       success: true,
       message: 'Image uploaded successfully',
-      imageUrl,
-      filename: req.file.filename,
-      size: req.file.size,
-      mimetype: req.file.mimetype,
+      imageUrl: responsePayload.url,
+      filename: responsePayload.filename ?? responsePayload.publicId,
+      size: responsePayload.size,
+      mimetype: responsePayload.mimetype,
     });
   } catch (error) {
     await logAuditEvent(req, {
@@ -142,6 +136,13 @@ export const importProductImageFromUrl = async (req: Request, res: Response): Pr
 
     const contentTypeHeader = response.headers.get('content-type') ?? '';
     const mimeType = contentTypeHeader.split(';')[0]?.trim().toLowerCase();
+    const remoteMimeToExtension = new Map<string, string>([
+      ['image/jpeg', '.jpg'],
+      ['image/jpg', '.jpg'],
+      ['image/png', '.png'],
+      ['image/webp', '.webp'],
+      ['image/avif', '.avif'],
+    ]);
     const extension = mimeType ? remoteMimeToExtension.get(mimeType) : undefined;
 
     if (!extension || !mimeType) {
@@ -162,22 +163,20 @@ export const importProductImageFromUrl = async (req: Request, res: Response): Pr
       throw new ImportImageError('Image must be 5MB or smaller');
     }
 
-    await fs.mkdir(uploadDirectory, { recursive: true });
-
-    const filename = resolveImportFileName(imageUrl, extension);
-    await fs.writeFile(path.join(uploadDirectory, filename), buffer);
-
-    const storedImageUrl = buildStoredImageUrl(filename);
+    const baseName =
+      sanitizeBaseName(path.basename(imageUrl.pathname, path.extname(imageUrl.pathname))) ||
+      'remote-product';
+    const stored = await storeImageBuffer(buffer, `${baseName}${extension}`, mimeType);
 
     await logAuditEvent(req, {
       action: 'uploads.product_image.import',
       outcome: 'success',
       statusCode: 201,
       resourceType: 'upload',
-      resourceId: filename,
+      resourceId: stored.publicId ?? stored.filename ?? 'cloudinary',
       metadata: {
         sourceUrl: imageUrl.toString(),
-        fileSize: buffer.byteLength,
+        fileSize: stored.size,
         mimeType,
       },
     });
@@ -185,9 +184,9 @@ export const importProductImageFromUrl = async (req: Request, res: Response): Pr
     res.status(201).json({
       success: true,
       message: 'Image imported successfully',
-      imageUrl: storedImageUrl,
-      filename,
-      size: buffer.byteLength,
+      imageUrl: stored.url,
+      filename: stored.filename ?? stored.publicId,
+      size: stored.size,
       mimetype: mimeType,
       sourceUrl: imageUrl.toString(),
     });

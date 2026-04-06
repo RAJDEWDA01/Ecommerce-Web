@@ -8,6 +8,7 @@ type TrustProxyValue = boolean | number | undefined;
 interface EnvironmentConfig {
   nodeEnv: NodeEnv;
   isProduction: boolean;
+  uploadDriver: 'local' | 'cloudinary';
   port: number;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   mongoUri: string;
@@ -30,6 +31,12 @@ interface EnvironmentConfig {
   auditAlertCheckIntervalMinutes: number;
   auditAlertNotificationCooldownMinutes: number;
   auditAlertWebhookTimeoutMs: number;
+  cloudinary: {
+    cloudName: string | null;
+    apiKey: string | null;
+    apiSecret: string | null;
+    folder: string;
+  };
   adminNotifications: {
     orderEnabled: boolean;
     paymentEnabled: boolean;
@@ -219,6 +226,22 @@ const parseNodeEnv = (raw: string, errors: string[]): NodeEnv => {
   return 'development';
 };
 
+const parseUploadDriver = (
+  raw: string,
+  errors: string[]
+): 'local' | 'cloudinary' => {
+  if (!raw || raw === 'local') {
+    return 'local';
+  }
+
+  if (raw === 'cloudinary') {
+    return 'cloudinary';
+  }
+
+  errors.push('UPLOAD_DRIVER must be either "local" or "cloudinary"');
+  return 'local';
+};
+
 const parseCorsOrigins = (raw: string, fallback: string, errors: string[]): string[] => {
   const source = raw || fallback;
   const values = source
@@ -321,6 +344,7 @@ const buildEnvironmentConfig = (): EnvironmentConfig => {
   const errors: string[] = [];
 
   const nodeEnv = parseNodeEnv(trimValue(process.env.NODE_ENV), errors);
+  const uploadDriver = parseUploadDriver(trimValue(process.env.UPLOAD_DRIVER), errors);
   const port = parsePort(trimValue(process.env.PORT), errors);
   const logLevel = parseLogLevel(trimValue(process.env.LOG_LEVEL), errors);
 
@@ -526,6 +550,21 @@ const buildEnvironmentConfig = (): EnvironmentConfig => {
     errors.push('RAZORPAY_WEBHOOK_SECRET is required in production when Razorpay is enabled');
   }
 
+  const cloudinaryCloudName = trimValue(process.env.CLOUDINARY_CLOUD_NAME) || null;
+  const cloudinaryApiKey = trimValue(process.env.CLOUDINARY_API_KEY) || null;
+  const cloudinaryApiSecret = trimValue(process.env.CLOUDINARY_API_SECRET) || null;
+  const cloudinaryFolder = trimValue(process.env.CLOUDINARY_FOLDER) || 'gaumaya-uploads';
+
+  if (uploadDriver === 'cloudinary') {
+    if (!cloudinaryCloudName) {
+      errors.push('CLOUDINARY_CLOUD_NAME is required when UPLOAD_DRIVER=cloudinary');
+    }
+
+    if (!cloudinaryApiKey || !cloudinaryApiSecret) {
+      errors.push('CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are required when UPLOAD_DRIVER=cloudinary');
+    }
+  }
+
   if (errors.length > 0) {
     throw new Error(
       `Environment validation failed:\n${errors.map((error) => `- ${error}`).join('\n')}`
@@ -535,6 +574,7 @@ const buildEnvironmentConfig = (): EnvironmentConfig => {
   return {
     nodeEnv,
     isProduction: nodeEnv === 'production',
+    uploadDriver,
     port,
     logLevel,
     mongoUri,
@@ -557,6 +597,12 @@ const buildEnvironmentConfig = (): EnvironmentConfig => {
     auditAlertCheckIntervalMinutes,
     auditAlertNotificationCooldownMinutes,
     auditAlertWebhookTimeoutMs,
+    cloudinary: {
+      cloudName: cloudinaryCloudName,
+      apiKey: cloudinaryApiKey,
+      apiSecret: cloudinaryApiSecret,
+      folder: cloudinaryFolder,
+    },
     adminNotifications: {
       orderEnabled: adminNotificationOrderEnabled,
       paymentEnabled: adminNotificationPaymentEnabled,

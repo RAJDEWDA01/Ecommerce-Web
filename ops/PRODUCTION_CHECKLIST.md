@@ -73,6 +73,12 @@ curl -i http://<your-domain>/api/health/ready
 docker compose --env-file .env.production.compose -f docker-compose.prod.yml ps
 ```
 
+## 4.1) Seed/Rotate Admin Credentials (DB-backed)
+
+```bash
+docker compose --env-file .env.production.compose -f docker-compose.prod.yml exec backend npm run seed:admin:prod
+```
+
 ## 5) Post-Deploy Hardening
 
 - Enable TLS termination (Cloudflare, LB, or host-level certificate).

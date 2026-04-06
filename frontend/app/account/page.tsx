@@ -80,6 +80,7 @@ interface OrdersResponse {
 interface VerificationResponse {
   success: boolean;
   message?: string;
+  debugEmailVerificationToken?: string;
 }
 
 interface UpdateProfileResponse {
@@ -180,6 +181,7 @@ export default function AccountPage() {
   const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
   const [verificationMessage, setVerificationMessage] = useState<string | null>(null);
   const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [verificationDebugLink, setVerificationDebugLink] = useState<string | null>(null);
   const [isSendingVerification, setIsSendingVerification] = useState(false);
   const [addressForm, setAddressForm] = useState<AddressFormState>(DEFAULT_ADDRESS_FORM);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
@@ -293,11 +295,16 @@ export default function AccountPage() {
   const handleResendVerification = async () => {
     setVerificationMessage(null);
     setVerificationError(null);
+    setVerificationDebugLink(null);
     setIsSendingVerification(true);
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
 
     try {
       const response = await customerApiFetch('/api/auth/verify-email/resend', {
         method: 'POST',
+        signal: controller.signal,
       });
       const data = (await response.json()) as VerificationResponse;
 
@@ -306,9 +313,19 @@ export default function AccountPage() {
       }
 
       setVerificationMessage(data.message || 'Verification email sent.');
+
+      if (data.debugEmailVerificationToken) {
+        const verificationPath = `/account/verify-email?token=${encodeURIComponent(data.debugEmailVerificationToken)}`;
+        setVerificationDebugLink(verificationPath);
+      }
     } catch (sendError) {
-      setVerificationError(sendError instanceof Error ? sendError.message : 'Unable to resend verification email');
+      if (sendError instanceof Error && sendError.name === 'AbortError') {
+        setVerificationError('Request timed out. Please check backend logs for SMTP/connectivity issues and try again.');
+      } else {
+        setVerificationError(sendError instanceof Error ? sendError.message : 'Unable to resend verification email');
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setIsSendingVerification(false);
     }
   };
@@ -919,6 +936,14 @@ export default function AccountPage() {
             </button>
             {verificationMessage && (
               <p className="mt-3 text-sm text-emerald-700">{verificationMessage}</p>
+            )}
+            {verificationDebugLink && (
+              <p className="mt-2 text-sm text-amber-900">
+                Dev fallback:{' '}
+                <Link href={verificationDebugLink} className="underline font-semibold">
+                  Open verification link
+                </Link>
+              </p>
             )}
             {verificationError && (
               <p className="mt-3 text-sm text-red-700">{verificationError}</p>

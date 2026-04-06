@@ -20,7 +20,15 @@ const defaultImageOrigins = [
   ...(allowThirdPartyRemoteImages ? thirdPartyImageOrigins : []),
 ];
 
+const cloudinaryHostname =
+  process.env.NEXT_PUBLIC_CLOUDINARY_HOSTNAME?.trim() || 'res.cloudinary.com';
+
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const configuredInternalApiBaseUrl = process.env.INTERNAL_API_BASE_URL?.trim();
+const uploadProxyBaseUrl =
+  configuredInternalApiBaseUrl ||
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'http://backend:5000');
+const normalizedUploadProxyBaseUrl = uploadProxyBaseUrl.replace(/\/$/, '');
 const configuredOrigin =
   configuredApiBaseUrl && (() => {
     try {
@@ -39,8 +47,22 @@ const imageOrigins = configuredOrigin
   ? [...defaultImageOrigins, configuredOrigin]
   : defaultImageOrigins;
 
+imageOrigins.push({
+  protocol: 'https',
+  hostname: cloudinaryHostname,
+  port: '',
+});
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: `${normalizedUploadProxyBaseUrl}/uploads/:path*`,
+      },
+    ];
+  },
   images: {
     dangerouslyAllowLocalIP: allowLocalImageIps,
     remotePatterns: imageOrigins.map((origin) => ({

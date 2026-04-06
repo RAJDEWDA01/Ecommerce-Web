@@ -47,7 +47,7 @@ interface ProductListResponse {
 
 const getProductById = async (id: string): Promise<Product | null> => {
   const response = await fetch(buildApiUrl(`/api/products/${id}`), {
-    next: { revalidate: 120 },
+    next: { revalidate: 30 },
   });
 
   if (response.status === 404 || response.status === 400) {
@@ -86,7 +86,7 @@ const getRelatedProducts = async (currentProduct: Product): Promise<Product[]> =
   }
 
   const response = await fetch(buildApiUrl(`/api/products?${query.toString()}`), {
-    next: { revalidate: 120 },
+    next: { revalidate: 30 },
   });
 
   if (!response.ok) {

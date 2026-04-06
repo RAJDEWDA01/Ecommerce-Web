@@ -54,7 +54,9 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use('/uploads', express.static(path.resolve('uploads')));
+if (env.uploadDriver === 'local') {
+  app.use('/uploads', express.static(path.resolve('uploads')));
+}
 
 const getMongoHealthLabel = (): 'connected' | 'connecting' | 'disconnecting' | 'disconnected' => {
   switch (mongoose.connection.readyState) {

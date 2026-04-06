@@ -88,7 +88,7 @@ docker compose --env-file .env.production.compose -f docker-compose.prod.yml -f 
 ## 5) Seed admin user
 
 ```bash
-docker compose --env-file .env.production.compose -f docker-compose.prod.yml -f docker-compose.prod.tls.yml exec backend npm run seed:admin
+docker compose --env-file .env.production.compose -f docker-compose.prod.yml -f docker-compose.prod.tls.yml exec backend npm run seed:admin:prod
 ```
 
 ## 6) Smoke test (must pass)

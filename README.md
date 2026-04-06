@@ -64,6 +64,10 @@ docker compose --env-file .env.production.compose -f docker-compose.prod.yml up 
 
 - Keep `NEXT_PUBLIC_API_BASE_URL` empty in production compose env for same-domain `/api` proxying.
 - If you use included Mongo/Redis services, set `MONGO_URI=mongodb://mongo:27017/gaumaya` and `REDIS_URL=redis://redis:6379` in `backend/.env.production`.
+- Admin login is DB-based. After first deploy (or password change), seed/update admin user:
+```bash
+docker compose --env-file .env.production.compose -f docker-compose.prod.yml exec backend npm run seed:admin:prod
+```
 - HTTPS mode (Nginx TLS in-container):
 ```bash
 docker compose --env-file .env.production.compose -f docker-compose.prod.yml -f docker-compose.prod.tls.yml up -d --build

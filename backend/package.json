@@ -12,6 +12,7 @@
     "test:watch": "vitest --maxWorkers=1",
     "seed:products": "tsx src/seed.ts",
     "seed:admin": "tsx src/scripts/bootstrapAdmin.ts",
+    "seed:admin:prod": "node dist/scripts/bootstrapAdmin.js",
     "security:generate": "tsx src/scripts/generateSecrets.ts"
   },
   "keywords": [],
@@ -19,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

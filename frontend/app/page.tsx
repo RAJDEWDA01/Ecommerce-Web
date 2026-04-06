@@ -117,7 +117,7 @@ const toCatalogQueryString = (
 
 async function getProducts(filters: CatalogFilters): Promise<ProductListResponse> {
   const res = await fetch(buildApiUrl(`/api/products?${toCatalogQueryString(filters)}`), {
-    next: { revalidate: 60 },
+    cache: 'no-store',
   });
 
   if (!res.ok) {

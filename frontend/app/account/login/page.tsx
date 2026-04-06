@@ -74,7 +74,7 @@ export default function CustomerLoginPage() {
         <h1 className="text-3xl font-black text-stone-900">Sign In</h1>
         <p className="text-stone-600 mt-2">Access your account and order history.</p>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4" autoComplete="off">
           <div>
             <label className="block text-sm font-medium text-stone-700 mb-1">Email</label>
             <input
@@ -82,6 +82,7 @@ export default function CustomerLoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
               className="w-full border border-stone-300 rounded-lg px-4 py-2.5"
             />
           </div>
@@ -93,6 +94,7 @@ export default function CustomerLoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
               className="w-full border border-stone-300 rounded-lg px-4 py-2.5"
             />
           </div>
