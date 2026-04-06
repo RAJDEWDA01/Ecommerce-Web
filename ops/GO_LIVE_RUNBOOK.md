@@ -124,10 +124,29 @@ Use the same secret value as `RAZORPAY_WEBHOOK_SECRET`.
 - Confirm admin notification email is delivered.
 - If refund flow is tested, confirm webhook updates settlement status.
 
-## 9) Ongoing deploys
+## 9) Ongoing deploys (same code on server)
 
 Use rolling deploy script:
 
 ```bash
 COMPOSE_FILES=docker-compose.prod.yml,docker-compose.prod.tls.yml ./ops/deploy/rolling-deploy.sh
+```
+
+## 10) Update from GitHub, then deploy
+
+Use this flow each time you push new changes to GitHub and want them live:
+
+```bash
+cd /path/to/gaumaya-ecommerce
+git fetch origin
+git checkout main
+git pull --rebase origin main
+COMPOSE_FILES=docker-compose.prod.yml,docker-compose.prod.tls.yml ./ops/deploy/rolling-deploy.sh
+```
+
+Quick verification:
+
+```bash
+curl -i https://shop.your-domain.com/api/health/ready
+docker compose --env-file .env.production.compose -f docker-compose.prod.yml -f docker-compose.prod.tls.yml ps
 ```
