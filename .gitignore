@@ -30,3 +30,4 @@ pnpm-debug.log*
 backend/uploads/
 *.tmp
 *.cache
+cookies.txt
