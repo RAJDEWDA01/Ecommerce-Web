@@ -25,10 +25,22 @@ const cloudinaryHostname =
 
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
 const configuredInternalApiBaseUrl = process.env.INTERNAL_API_BASE_URL?.trim();
-const uploadProxyBaseUrl =
-  configuredInternalApiBaseUrl ||
-  (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : 'http://backend:5000');
-const normalizedUploadProxyBaseUrl = uploadProxyBaseUrl.replace(/\/$/, '');
+const configuredInternalApiHostPort = process.env.INTERNAL_API_HOSTPORT?.trim();
+const normalizeApiBaseUrl = (value: string | undefined): string => {
+  const trimmed = value?.trim() ?? '';
+
+  if (!trimmed) {
+    return '';
+  }
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+};
+const apiProxyBaseUrl =
+  normalizeApiBaseUrl(configuredInternalApiBaseUrl) ||
+  normalizeApiBaseUrl(configuredInternalApiHostPort) ||
+  normalizeApiBaseUrl(configuredApiBaseUrl) ||
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '');
+const normalizedApiProxyBaseUrl = apiProxyBaseUrl.replace(/\/$/, '');
 const configuredOrigin =
   configuredApiBaseUrl && (() => {
     try {
@@ -56,10 +68,18 @@ imageOrigins.push({
 const nextConfig: NextConfig = {
   output: "standalone",
   async rewrites() {
+    if (!normalizedApiProxyBaseUrl) {
+      return [];
+    }
+
     return [
       {
+        source: '/api/:path*',
+        destination: `${normalizedApiProxyBaseUrl}/api/:path*`,
+      },
+      {
         source: '/uploads/:path*',
-        destination: `${normalizedUploadProxyBaseUrl}/uploads/:path*`,
+        destination: `${normalizedApiProxyBaseUrl}/uploads/:path*`,
       },
     ];
   },

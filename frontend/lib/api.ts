@@ -1,9 +1,19 @@
 const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? '';
 const configuredInternalApiBaseUrl = process.env.INTERNAL_API_BASE_URL?.trim() ?? '';
+const configuredInternalApiHostPort = process.env.INTERNAL_API_HOSTPORT?.trim() ?? '';
+const normalizeInternalApiBaseUrl = (value: string): string => {
+  if (!value) {
+    return '';
+  }
+
+  return /^https?:\/\//i.test(value) ? value : `http://${value}`;
+};
+const INTERNAL_API_BASE_URL =
+  configuredInternalApiBaseUrl || normalizeInternalApiBaseUrl(configuredInternalApiHostPort);
 const PUBLIC_API_BASE_URL =
   configuredApiBaseUrl || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '');
 const SERVER_API_BASE_URL =
-  configuredInternalApiBaseUrl || PUBLIC_API_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '');
+  INTERNAL_API_BASE_URL || PUBLIC_API_BASE_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:5000' : '');
 
 export const buildApiUrl = (path: string): string => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

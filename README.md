@@ -104,7 +104,40 @@ npm run build
 npm run start
 ```
 
-## 6) Backend Integration Tests
+## 6) Render.com Free Deployment
+
+This repo includes a `render.yaml` Blueprint for Render free-tier deployment:
+
+- `gaumaya-backend` - Node web service for Express API.
+- `gaumaya-frontend` - Node web service for Next.js.
+- `gaumaya-redis` - free Render Key Value instance for rate limiting.
+
+Render setup:
+
+1. Create a MongoDB Atlas free cluster and use its `mongodb+srv://...` URI for `MONGO_URI`. Do not use the Docker-only `mongodb://mongo:27017/gaumaya` value on Render.
+2. In Render, create a new Blueprint from this repo. Render will read `render.yaml`.
+3. Fill the prompted backend secrets: `MONGO_URI`, Cloudinary keys, Razorpay keys if payments are enabled, and any SMTP/admin notification values you use.
+4. After the first deploy, confirm the service URLs. If Render gives different hostnames than the defaults, update:
+   - backend: `FRONTEND_URL`, `CORS_ORIGIN`
+   - frontend: `NEXT_PUBLIC_API_BASE_URL`, `INTERNAL_API_BASE_URL`
+5. Backend health check: `/api/health`. Readiness check after deploy: `/api/health/ready`.
+
+Manual Render settings, if you do not use the Blueprint:
+
+- Backend root directory: `backend`
+- Backend build command: `npm ci && npm run build`
+- Backend start command: `npm run start`
+- Frontend root directory: `frontend`
+- Frontend build command: `npm ci && npm run build`
+- Frontend start command: `npm run start`
+
+Free-tier notes:
+
+- Free web services can spin down after 15 minutes without traffic, so the first request can be slow.
+- Free web services have an ephemeral filesystem. Keep `UPLOAD_DRIVER=cloudinary`; local uploads will not survive restarts.
+- Free web services cannot send outbound SMTP on common ports like `25`, `465`, and `587`. If email delivery matters, use a provider/port Render allows, an HTTP email API integration, or upgrade the backend service.
+
+## 7) Backend Integration Tests
 
 ```bash
 cd backend
@@ -119,7 +152,7 @@ Covered flows:
 
 Note: On first run, `mongodb-memory-server` downloads a MongoDB binary, so the first test run can take longer.
 
-## 7) Production-Grade Backend Upgrades
+## 8) Production-Grade Backend Upgrades
 
 - Atomic checkout with MongoDB transaction-first flow (with safe compensated fallback when transactions are unavailable).
 - Scalable product listing:
@@ -130,7 +163,7 @@ Note: On first run, `mongodb-memory-server` downloads a MongoDB binary, so the f
   - `GET /api/orders/my-orders?page=1&limit=20&paymentStatus=paid`
 - Database indexes added for high-volume order/product filtering and sorting patterns.
 
-## 8) Enterprise Security and Observability (Phase 2)
+## 9) Enterprise Security and Observability (Phase 2)
 
 - Secret hygiene and generation:
   - `cd backend && npm run security:generate` to generate secure `JWT_SECRET` and `BOOTSTRAP_ADMIN_PASSWORD` values.
@@ -181,13 +214,13 @@ Note: On first run, `mongodb-memory-server` downloads a MongoDB binary, so the f
   - scheduler interval, cooldown, and timeout are configurable in `backend/.env`,
   - notifier health and manual run are available in Admin Audit UI.
 
-## 9) CI/CD Quality Gates
+## 10) CI/CD Quality Gates
 
 - GitHub Actions workflow at `.github/workflows/ci.yml` runs on push and pull requests:
   - backend install + build + tests
   - frontend install + build
 
-## 10) Data Safety and Recovery
+## 11) Data Safety and Recovery
 
 - Backup/restore scripts are available in `ops/backup/`:
   - `backup-mongo.ps1` / `backup-mongo.sh`
@@ -196,7 +229,7 @@ Note: On first run, `mongodb-memory-server` downloads a MongoDB binary, so the f
 - Runbook:
   - `ops/backup/README.md`
 
-## 11) Customer Commerce Features (New)
+## 12) Customer Commerce Features (New)
 
 - Wishlist APIs:
   - `GET /api/wishlist` (customer auth)

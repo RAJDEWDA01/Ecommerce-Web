@@ -36,8 +36,9 @@ const bootstrap = async (): Promise<void> => {
     intervalMinutes: env.adminNotificationRetention.intervalMinutes,
   });
 
-  const server = app.listen(env.port, () => {
-    console.log(`Server is running on http://localhost:${env.port}`);
+  const host = '0.0.0.0';
+  const server = app.listen(env.port, host, () => {
+    console.log(`Server is running on http://${host}:${env.port}`);
   });
 
   const shutdown = (): void => {
